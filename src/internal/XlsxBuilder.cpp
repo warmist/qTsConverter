@@ -24,24 +24,30 @@ auto XlsxBuilder::build(const Result &res) const -> bool
 
     addTsSupport(row, col, xlsx);
 
-    xlsx.write(row, col, TitleHeader::Context);
-    ++col;
-    xlsx.write(row, col, TitleHeader::Source);
-    ++col;
-    xlsx.write(row, col, TitleHeader::Translation);
-    ++col;
-    xlsx.write(row, col, TitleHeader::Location);
-    ++col;
+    xlsx.write(row-1, 2, res.params.source_lang);
+    xlsx.write(row-1, 3, res.params.lang);
+
+    const char *header[] = { TitleHeader::Context, 
+                             TitleHeader::Source,
+                             TitleHeader::Translation,
+                             TitleHeader::TranslationPlural,
+                             TitleHeader::TranslationComment,
+                             TitleHeader::Location
+    };
+    for (int i = 0; i < 6; i++)
+        xlsx.write(row, i + 1, header[i]);
 
     col = 1;
-    if (row == 1) {
+    //if (row == 1) {
         ++row;
-    }
+    //}
     for (const auto &tr : res.translantions) {
         for (const auto &msg : tr.messages) {
             xlsx.write(row, col++, tr.name);
             xlsx.write(row, col++, msg.source);
             xlsx.write(row, col++, msg.translation);
+            xlsx.write(row, col++, msg.translation_plural);
+            xlsx.write(row, col++, msg.comment);
 
             for (const auto &loc : msg.locations) {
                 xlsx.write(

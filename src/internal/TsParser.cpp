@@ -6,18 +6,28 @@
 TsParser::TsParser(InOutParameter &&parameter) : Parser{ std::move(parameter) }
 {
 }
-
+bool is_numerus(const QDomNode& node) {
+    auto attrs = node.attributes();
+    if (attrs.contains("numerus"))
+        return true;
+    return false;
+}
 auto TsParser::parse() const -> Result
 {
     QDomDocument doc;
     QFile file(m_ioParameter.inputFile);
-
+    InOutParameter param;
     if (!file.open(QIODevice::ReadOnly) || !doc.setContent(&file)) {
         return Result{ "Failed to open source!", {}, {} };
     }
 
     Translations translations;
-
+    //parse source target language
+    auto TS = doc.elementsByTagName(QStringLiteral("TS")).item(0);
+    auto attrs = TS.attributes();
+    param.lang = attrs.namedItem("language").nodeValue();
+    param.source_lang = attrs.namedItem("sourcelanguage").nodeValue();
+    //
     auto contexts = doc.elementsByTagName(QStringLiteral("context"));
     for (int i = 0; i < contexts.size(); ++i) {
         auto nodeCtx = contexts.item(i);
@@ -35,8 +45,23 @@ auto TsParser::parse() const -> Result
 
             msg.source =
                 nodeMsg.firstChildElement(QStringLiteral("source")).text();
-            msg.translation =
-                nodeMsg.firstChildElement(QStringLiteral("translation")).text();
+            auto translation_node =
+                nodeMsg.firstChildElement(QStringLiteral("translation"));
+            if (is_numerus(nodeMsg)) {
+                auto numerus_nodes = translation_node.childNodes();
+                msg.translation        = numerus_nodes.at(0).toElement().text();
+                msg.translation_plural = numerus_nodes.at(1).toElement().text();
+            }
+            else
+            {
+                msg.translation = translation_node.text();
+            }
+
+            auto comment_node =
+                nodeMsg.firstChildElement(QStringLiteral("extracomment"));
+            if (!comment_node.isNull())
+                msg.comment = comment_node.text();
+
 
             for (int k = 0; k < locations.size(); k++) {
                 if (locations.at(k).nodeName() == "location") {
@@ -49,7 +74,7 @@ auto TsParser::parse() const -> Result
         translations.emplace_back(context);
     }
 
-    return Result{ "", std::move(translations), {} };
+    return Result{ "", std::move(translations), std::move(param) };
 }
 
 auto TsParser::wrapLocation(const QDomNode &node) -> std::pair<QString, int>

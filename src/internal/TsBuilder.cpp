@@ -27,13 +27,19 @@ auto TsBuilder::build(const Result &res) const -> bool
     s.writeEmptyElement("!DOCTYPE TS");
     s.writeStartElement("TS");
     s.writeAttribute("version", res.params.tsVersion);
-
+    if (!res.params.source_lang.isEmpty())
+        s.writeAttribute("sourcelanguage", res.params.source_lang);
+    if (!res.params.lang.isEmpty())
+        s.writeAttribute("language", res.params.lang);
     for (const auto &ctxs : res.translantions) {
         s.writeStartElement("context");
         s.writeTextElement("name", ctxs.name);
 
         for (const auto &msg : ctxs.messages) {
             s.writeStartElement("message");
+
+            if (!msg.translation_plural.isEmpty())
+                s.writeAttribute("numerus", "yes");
 
             for (const auto &loc : msg.locations) {
                 s.writeEmptyElement("location");
@@ -42,7 +48,20 @@ auto TsBuilder::build(const Result &res) const -> bool
             }
 
             s.writeTextElement("source", msg.source);
-            s.writeTextElement("translation", msg.translation);
+
+            s.writeStartElement("translation");
+            if (msg.translation.isEmpty())
+                s.writeAttribute("type", "unfinished");
+            if (!msg.translation_plural.isEmpty()) {
+                s.writeTextElement("numerusform", msg.translation);
+                s.writeTextElement("numerusform", msg.translation_plural);
+            } else {
+                s.writeCharacters(msg.translation);
+            }
+            s.writeEndElement();
+
+            if (!msg.comment.isEmpty())
+                s.writeTextElement("extracomment", msg.comment);
             s.writeEndElement(); // message
         }
         s.writeEndElement(); // context

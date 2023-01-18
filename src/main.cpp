@@ -22,8 +22,8 @@ auto main(int argc, char **argv) -> int
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
 
 #ifdef Q_OS_WIN
-    QQuickWindow::setTextRenderType(
-        QQuickWindow::TextRenderType::NativeTextRendering);
+    //QQuickWindow::setTextRenderType(
+    //    QQuickWindow::TextRenderType::NativeTextRendering);
 #endif
 
 #ifdef ONLY_CLI

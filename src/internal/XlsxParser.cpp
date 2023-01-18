@@ -19,7 +19,7 @@ auto XlsxParser::parse() const -> Result
     const auto appVersion       = qApp->applicationVersion();
     const auto currentVersion   = QVersionNumber::fromString(appVersion);
     const auto TsSupportVersion = QVersionNumber(4, 5, 0);
-    InOutParameter p{ "", "", m_ioParameter.tsVersion, {} };
+    InOutParameter p{ "", "", m_ioParameter.tsVersion, {}, "", "" };
     if (QVersionNumber::compare(currentVersion, TsSupportVersion) >= 0) {
         p.tsVersion = xlsx.read(2, 1).toString();
         offsetRow   = 2;
@@ -28,9 +28,14 @@ auto XlsxParser::parse() const -> Result
     if (xlsx.read(offsetRow + 1, 1) != TitleHeader::Context ||
         xlsx.read(offsetRow + 1, 2) != TitleHeader::Source ||
         xlsx.read(offsetRow + 1, 3) != TitleHeader::Translation ||
-        xlsx.read(offsetRow + 1, 4) != TitleHeader::Location) {
+        xlsx.read(offsetRow + 1, 4) != TitleHeader::TranslationPlural ||
+        xlsx.read(offsetRow + 1, 5) != TitleHeader::TranslationComment ||
+        xlsx.read(offsetRow + 1, 6) != TitleHeader::Location) {
         return Result{ "Invalid XLSX file, check the headers!", {}, {} };
     }
+
+    p.source_lang = xlsx.read(offsetRow, 2).toString();
+    p.lang        = xlsx.read(offsetRow, 3).toString();
 
     Translations translations;
     TranslationContext context;
@@ -39,12 +44,14 @@ auto XlsxParser::parse() const -> Result
     const auto lastRow    = xlsx.dimension().lastRow();
     const auto lastColumn = xlsx.dimension().lastColumn();
 
-    for (auto row = 2; row <= lastRow; ++row) {
+    for (auto row = 4; row <= lastRow; ++row) {
         context.name    = xlsx.read(row, 1).toString();
         msg.source      = xlsx.read(row, 2).toString();
         msg.translation = xlsx.read(row, 3).toString();
+        msg.translation_plural = xlsx.read(row, 4).toString();
+        msg.comment            = xlsx.read(row, 5).toString();
 
-        for (auto col = 4; col <= lastColumn; ++col) {
+        for (auto col = 6; col <= lastColumn; ++col) {
             const auto loc = xlsx.read(row, col).toString();
             if (loc.isEmpty()) {
                 break;

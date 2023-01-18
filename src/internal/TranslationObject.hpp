@@ -6,6 +6,8 @@
 struct TranslationMessage {
     QString source;
     QString translation;
+    QString translation_plural;
+    QString comment;
     std::vector<std::pair<QString, int>> locations;
 };
 
