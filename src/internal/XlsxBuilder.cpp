@@ -8,6 +8,8 @@
 #include <QVersionNumber>
 #include <QtDebug>
 
+#include <xlsxconditionalformatting.h>
+
 XlsxBuilder::XlsxBuilder(InOutParameter parameter) :
     Builder{ std::move(parameter) }
 {
@@ -22,6 +24,14 @@ auto XlsxBuilder::build(const Result &res) const -> bool
     int row{ 1 };
     int col{ 1 };
 
+
+    QXlsx::Format highlight_background;
+    highlight_background.setPatternBackgroundColor(QColor(248, 203, 173));
+    highlight_background.setPatternForegroundColor(QColor(248, 203, 173));
+    
+    QXlsx::ConditionalFormatting format;
+    format.addHighlightCellsRule(QXlsx::ConditionalFormatting::Highlight_Blanks,
+                                 highlight_background);
     addTsSupport(row, col, xlsx);
 
     xlsx.write(row-1, 2, res.params.source_lang);
@@ -38,9 +48,8 @@ auto XlsxBuilder::build(const Result &res) const -> bool
         xlsx.write(row, i + 1, header[i]);
 
     col = 1;
-    //if (row == 1) {
-        ++row;
-    //}
+    ++row;
+    int row_data_start = row;
     for (const auto &tr : res.translantions) {
         for (const auto &msg : tr.messages) {
             xlsx.write(row, col++, tr.name);
@@ -58,6 +67,14 @@ auto XlsxBuilder::build(const Result &res) const -> bool
             col = 1;
         }
     }
+
+    format.addRange(row_data_start, 3, row-1, 3);
+    xlsx.addConditionalFormatting(format);
+    xlsx.setColumnHidden(1, true);
+    for (int i=6;i<10;i++)
+        xlsx.setColumnHidden(i, true);
+    xlsx.setColumnWidth(2, 45);
+    xlsx.setColumnWidth(3, 45);
 
     if (!xlsx.saveAs(m_ioParameter.outputFile)) {
         qWarning() << "error writing file";
