@@ -14,6 +14,7 @@ XlsxParser::XlsxParser(InOutParameter &&parameter) :
 auto XlsxParser::parse() const -> Result
 {
     QXlsx::Document xlsx(m_ioParameter.inputFile);
+    xlsx.saveAs("test_out.xlsx");
 
     auto offsetRow{ 0 };
     const auto appVersion       = qApp->applicationVersion();
@@ -24,15 +25,16 @@ auto XlsxParser::parse() const -> Result
         p.tsVersion = xlsx.read(2, 1).toString();
         offsetRow   = 2;
     }
+#define CHECK_HEADER(col, check_against){ if (xlsx.read(offsetRow + 1, col) != TitleHeader::check_against)\
+        return Result{"Invalid XLSX file, check the " #check_against " header", {}, {}};\
+    };
 
-    if (xlsx.read(offsetRow + 1, 1) != TitleHeader::Context ||
-        xlsx.read(offsetRow + 1, 2) != TitleHeader::Source ||
-        xlsx.read(offsetRow + 1, 3) != TitleHeader::Translation ||
-        xlsx.read(offsetRow + 1, 4) != TitleHeader::TranslationPlural ||
-        xlsx.read(offsetRow + 1, 5) != TitleHeader::TranslationComment ||
-        xlsx.read(offsetRow + 1, 6) != TitleHeader::Location) {
-        return Result{ "Invalid XLSX file, check the headers!", {}, {} };
-    }
+    CHECK_HEADER(1, Context)
+    CHECK_HEADER(2, Source)
+    CHECK_HEADER(3, Translation)
+    CHECK_HEADER(4, TranslationPlural)
+    CHECK_HEADER(5, TranslationComment)
+    CHECK_HEADER(6, Location)
 
     p.source_lang = xlsx.read(offsetRow, 2).toString();
     p.lang        = xlsx.read(offsetRow, 3).toString();
